@@ -1,0 +1,28 @@
+environment: kind
+
+llm:
+  mock: false
+  primaryModel: claude-sonnet-5-5
+  fallbackModel: claude-haiku-5-5
+  maxTokens: 1024
+  secretName: relay-llm        # the Secret you created with kubectl
+
+backend:
+  replicas: 1
+  image:
+    repository: relay-backend
+    tag: dev
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+frontend:
+  replicas: 1
+  image:
+    repository: relay-frontend
+    tag: dev
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { memory: 64Mi }
