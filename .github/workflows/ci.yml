@@ -76,7 +76,7 @@ jobs:
           build-args: VERSION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
-    deploy-test:
+  deploy-test:
     needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -139,4 +139,4 @@ jobs:
           kubectl get pods -n relay -o wide
           kubectl describe pods -n relay
           kubectl logs -n relay deploy/backend --tail=100
-          kubectl logs -n relay deploy/frontend --tail=100        
+          kubectl logs -n relay deploy/frontend --tail=100
