@@ -126,7 +126,7 @@ class MockProvider:
         "3. **Code** when you ask for it:\n\n"
         "```python\n"
         "def greet(name: str) -> str:\n"
-        "    return f\"Hello, {name}!\"\n"
+        '    return f"Hello, {name}!"\n'
         "```\n\n"
         "Set `ANTHROPIC_API_KEY` and turn off mock mode to chat with Claude."
     )
