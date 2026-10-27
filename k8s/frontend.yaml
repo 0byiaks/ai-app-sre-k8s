@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: relay
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: relay-frontend:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080          # nginx-unprivileged listens on 8080
+          env:
+            - name: BACKEND_URL            # where nginx sends /api/ requests:
+              value: http://backend:8000   # the backend Service's name + port
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }   # nginx is tiny
+            limits: { memory: 64Mi }
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: nginx-conf             # nginx writes its final config here at startup
+              mountPath: /etc/nginx/conf.d
+            - name: tmp                    # nginx's temp files and PID file
+              mountPath: /tmp
+      volumes:
+        - name: nginx-conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: relay
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80            # the Service listens on 80...
+      targetPort: http    # ...and forwards to the pod's 8080
