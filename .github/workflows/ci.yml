@@ -17,22 +17,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip                                            # NEW
-          cache-dependency-path: app/backend/requirements-dev.txt  # NEW
+          cache: pip
+          cache-dependency-path: app/backend/requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Lint                     # NEW
+      - name: Lint
         run: ruff check .
 
-      - name: Format check             # NEW
+      - name: Format check
         run: ruff format --check .
 
       - name: Unit tests
         run: pytest -v
 
-  helm-lint:                           # NEW job
+  helm-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +45,7 @@ jobs:
       - name: Render the chart
         run: helm template relay helm/relay > /dev/null
 
-jobs:
-   build:
+  build:
     needs: [test, helm-lint]
     runs-on: ubuntu-latest
     permissions:
@@ -76,4 +75,4 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/relay-${{ matrix.component }}:${{ github.sha }}
           build-args: VERSION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}       
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
