@@ -17,9 +17,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip                                            # NEW
+          cache-dependency-path: app/backend/requirements-dev.txt  # NEW
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      - name: Lint                     # NEW
+        run: ruff check .
+
+      - name: Format check             # NEW
+        run: ruff format --check .
+
       - name: Unit tests
         run: pytest -v
+
+  helm-lint:                           # NEW job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint the chart
+        run: helm lint helm/relay
+
+      - name: Render the chart
+        run: helm template relay helm/relay > /dev/null
