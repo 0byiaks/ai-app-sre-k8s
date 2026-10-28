@@ -1,0 +1,38 @@
+# Run Loki as one simple program: right for a small cluster.
+deploymentMode: Monolithic
+
+loki:
+  auth_enabled: false            # one user only, no logins between apps
+  commonConfig:
+    replication_factor: 1        # keep one copy (we only have one Loki)
+  storage:
+    type: filesystem             # store logs on Loki's own disk
+  schemaConfig:                  # how Loki organises its files (standard setting)
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  limits_config:
+    retention_period: 72h        # keep logs for 3 days, then delete them
+  compactor:
+    retention_enabled: true      # actually do the deleting
+    delete_request_store: filesystem
+
+singleBinary:
+  replicas: 1
+  persistence:
+    size: 5Gi                    # Loki's disk
+
+# Switch off the parts meant for big clusters.
+backend: { replicas: 0 }
+read: { replicas: 0 }
+write: { replicas: 0 }
+gateway: { enabled: false }
+chunksCache: { enabled: false }
+resultsCache: { enabled: false }
+lokiCanary: { enabled: false }
+test: { enabled: false }

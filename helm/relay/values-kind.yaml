@@ -2,3 +2,5 @@ serviceMonitor:
   enabled: true
 alerts:
   enabled: true
+rag:
+  enabled: true

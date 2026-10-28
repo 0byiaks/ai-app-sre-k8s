@@ -31,3 +31,8 @@ serviceMonitor:
   enabled: false
 alerts:
   enabled: false
+rag:
+  enabled: false
+  postgres:
+    image: pgvector/pgvector:pg16
+    storage: 1Gi
