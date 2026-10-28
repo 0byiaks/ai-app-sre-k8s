@@ -26,3 +26,8 @@ frontend:
   resources:
     requests: { cpu: 25m, memory: 32Mi }
     limits: { memory: 64Mi }
+
+serviceMonitor:
+  enabled: false
+alerts:
+  enabled: false

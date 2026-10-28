@@ -1,0 +1,82 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: relay-alerts
+  labels:
+    release: monitoring          # same idea as the ServiceMonitor: Prometheus only reads rules with its name
+spec:
+  groups:
+    - name: relay
+      rules:
+        - alert: RelayAIErrors
+          expr: sum(increase(relay_llm_errors_total[5m])) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: Relay is failing to get answers from Claude
+            description: Calls to the Claude API have failed in the last 5 minutes. Check the backend logs for the error reason.
+        - alert: RelayBackendDown
+          expr: kube_deployment_status_replicas_available{namespace="relay", deployment="backend"} < 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Relay backend has no ready pods
+            description: No backend pod has been ready for 2 minutes, so nobody can chat. Check kubectl get pods and describe.
+
+        - alert: RelaySpendHigh
+          expr: sum(increase(relay_llm_cost_usd_total[1h])) > 2
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Relay is spending too much on Claude
+            description: Spend has gone over $0.50 in the last hour. Check for loops, abuse or very long conversations.
+
+        - alert: RelayAuthFailing
+          expr: sum(increase(relay_llm_errors_total{reason="auth"}[5m])) > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: Claude is rejecting Relay's API key
+            description: Every chat will fail and the fallback model cannot help. Check the relay-llm secret.
+
+        - alert: RelayFallbackInUse
+          expr: sum(increase(relay_llm_fallbacks_total[15m])) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: Relay is answering with the backup model
+            description: The primary model failed and the fallback was used in the last 15 minutes. Users are still getting answers.
+
+        - alert: RelayMetricsMissing
+          expr: absent(up{namespace="relay", service="backend"} == 1)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Prometheus cannot scrape Relay
+            description: No healthy backend metrics for 5 minutes. Other Relay alerts may not fire. Check the ServiceMonitor and pods.
+
+        - alert: RelayRateLimited
+          expr: sum(increase(relay_rate_limited_total[10m])) > 20
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Many Relay requests are being rate limited
+            description: Over 20 requests were blocked in 10 minutes. Possible abuse, or the limit is too low for real users.
+        
+        - alert: RelaySlowResponses
+          expr: histogram_quantile(0.95, sum by (le) (rate(relay_llm_time_to_first_token_seconds_bucket[10m]))) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Relay answers are slow to start
+            description: 95% of answers took longer than 5 seconds to show the first word over the last 10 minutes.
+{{- end }}

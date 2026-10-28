@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: relay-dashboard
+  labels:
+    grafana_dashboard: "1"     # the sidecar looks for this label
+data:
+  relay.json: |-
+    {{- .Files.Get "dashboards/relay.json" | nindent 4 }}
