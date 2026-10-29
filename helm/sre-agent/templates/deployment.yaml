@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-agent
+  labels:
+    app: sre-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sre-agent
+  template:
+    metadata:
+      labels:
+        app: sre-agent
+    spec:
+      serviceAccountName: sre-agent          # run with the read-only badge
+      containers:
+        - name: sre-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: TARGET_NAMESPACE
+              value: {{ .Values.targetNamespace | quote }}
+            - name: AGENT_MODEL
+              value: {{ .Values.model | quote }}
+            - name: PROMETHEUS_URL
+              value: {{ .Values.prometheusUrl | quote }}
+            - name: LOKI_URL
+              value: {{ .Values.lokiUrl | quote }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.llm }}
+                  key: ANTHROPIC_API_KEY
+            - name: SLACK_WEBHOOK_FILE         # the Slack URL, read from the mounted Secret file
+              value: /etc/slack/url
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: slack
+              mountPath: /etc/slack
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: slack
+          secret:
+            secretName: {{ .Values.secrets.slack }}
+        - name: tmp
+          emptyDir: {}
+---
+# Gives the agent the address http://sre-agent.aiops.svc:8000 (Alertmanager uses it later).
+apiVersion: v1
+kind: Service
+metadata:
+  name: sre-agent
+  labels:
+    app: sre-agent
+spec:
+  selector:
+    app: sre-agent
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

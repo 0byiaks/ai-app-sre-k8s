@@ -1,0 +1,18 @@
+image:
+  repository: sre-agent
+  tag: dev
+  pullPolicy: IfNotPresent
+
+targetNamespace: relay            # the only namespace the agent is allowed to look at
+model: claude-sonnet-5-5
+
+prometheusUrl: http://monitoring-kube-prometheus-prometheus.monitoring.svc:9090
+lokiUrl: http://loki.monitoring.svc:3100
+
+secrets:
+  llm: sre-agent-llm              # holds ANTHROPIC_API_KEY
+  slack: sre-agent-slack          # holds url
+
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { memory: 256Mi }

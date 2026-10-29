@@ -1,0 +1,35 @@
+# 1. The agent's identity ("badge").
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sre-agent
+---
+# 2. What the badge may do: only look (get, list) inside the target namespace.
+#    There is no delete, update or patch, so it can never change anything.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sre-agent-read
+  namespace: {{ .Values.targetNamespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list"]
+---
+# 3. Connects the badge to those permissions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sre-agent-read
+  namespace: {{ .Values.targetNamespace }}
+subjects:
+  - kind: ServiceAccount
+    name: sre-agent
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: sre-agent-read
+  apiGroup: rbac.authorization.k8s.io
