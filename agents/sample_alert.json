@@ -1,0 +1,23 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "sre-agent",
+  "groupLabels": { "alertname": "RelayCrashLooping" },
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "RelayCrashLooping",
+        "severity": "critical",
+        "namespace": "relay",
+        "pod": "backend"
+      },
+      "annotations": {
+        "summary": "A Relay pod keeps restarting",
+        "description": "A backend pod restarted more than twice in 10 minutes."
+      },
+      "startsAt": "2026-10-29T11:30:00Z",
+      "fingerprint": "test-crashloop-1"
+    }
+  ]
+}
