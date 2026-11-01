@@ -7,7 +7,11 @@ Routes
 
 Guardrails
   - Only firing alerts whose name matches ALERT_PREFIX are investigated.
-  - The same alert (by fingerprint) is investigated at most once per COOLDOWN_MINUTES.
+  - Each alert episode is investigated once. An episode is one alert (fingerprint) from the moment it
+    starts firing: Alertmanager's repeat notifications are skipped, but if the alert resolves and fires
+    again later, that is a new episode and is investigated.
+  - One incident, one investigation: if another alert in the same namespace was investigated in the
+    last INCIDENT_WINDOW_MINUTES, the new alert is linked to it in Slack instead of investigated again.
   - One investigation at a time, and at most MAX_PER_HOUR per hour, to cap cost.
 """
 
@@ -31,7 +35,8 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(
 log = logging.getLogger("sre_agent.server")
 
 ALERT_PREFIX = os.getenv("ALERT_PREFIX", "Relay")
-COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "30"))
+INCIDENT_WINDOW_MINUTES = int(os.getenv("INCIDENT_WINDOW_MINUTES", "5"))
+DEFAULT_NAMESPACE = os.getenv("TARGET_NAMESPACE", "relay")
 MAX_PER_HOUR = int(os.getenv("MAX_PER_HOUR", "10"))
 
 INVESTIGATIONS = Counter("sre_agent_investigations_total", "Investigations run", ["alertname", "outcome"])
@@ -42,7 +47,8 @@ DURATION = Histogram(
 )
 
 _lock = threading.Lock()  # one investigation at a time
-_recent: dict[str, float] = {}  # alert fingerprint -> when we last investigated it
+_episodes: dict[str, float] = {}  # "fingerprint|startsAt" -> when we investigated that episode
+_namespaces: dict[str, tuple[float, str]] = {}  # namespace -> (when, alertname) of the last investigation
 _hour: deque[float] = deque()  # start times of investigations in the last hour
 
 
@@ -65,23 +71,37 @@ def post_to_slack(text: str) -> None:
         log.error("posting to Slack failed: %s", exc)
 
 
-def should_investigate(alert: dict, now: float) -> str | None:
-    """Return None to investigate, or the reason to skip."""
-    name = alert.get("labels", {}).get("alertname", "")
+def should_investigate(alert: dict, now: float) -> tuple[str | None, str | None]:
+    """Return (None, None) to investigate, or (reason to skip, related alertname if any)."""
+    labels = alert.get("labels", {})
+    name = labels.get("alertname", "")
     if alert.get("status") != "firing":
-        return "resolved"
+        return "resolved", None
     if not name.startswith(ALERT_PREFIX):
-        return "not_ours"
-    fingerprint = alert.get("fingerprint") or name
-    if now - _recent.get(fingerprint, 0) < COOLDOWN_MINUTES * 60:
-        return "cooldown"
+        return "not_ours", None
+
+    for key, seen in list(_episodes.items()):  # forget episodes older than a day
+        if now - seen > 86400:
+            del _episodes[key]
+    episode = f"{alert.get('fingerprint') or name}|{alert.get('startsAt', '')}"
+    if episode in _episodes:
+        return "already_investigated", None
+
+    namespace = labels.get("namespace", DEFAULT_NAMESPACE)
+    last = _namespaces.get(namespace)
+    if last and now - last[0] < INCIDENT_WINDOW_MINUTES * 60:
+        _episodes[episode] = now  # count it as handled, so repeats are skipped too
+        return "same_incident", last[1]
+
     while _hour and now - _hour[0] > 3600:
         _hour.popleft()
     if len(_hour) >= MAX_PER_HOUR:
-        return "hourly_limit"
-    _recent[fingerprint] = now
+        return "hourly_limit", None
+
+    _episodes[episode] = now
+    _namespaces[namespace] = (now, name)
     _hour.append(now)
-    return None
+    return None, None
 
 
 def run_investigation(alert: dict) -> None:
@@ -128,9 +148,16 @@ async def alerts(request: Request, background: BackgroundTasks) -> dict:
     now = time.time()
     accepted = []
     for alert in payload.get("alerts", []):
-        reason = should_investigate(alert, now)
+        reason, related = should_investigate(alert, now)
         if reason:
             SKIPPED.labels(reason).inc()
+            if reason == "same_incident":
+                name = alert.get("labels", {}).get("alertname")
+                post_to_slack(
+                    f":link: *{name}* looks like part of the incident already being investigated "
+                    f"(*{related}*, in the last {INCIDENT_WINDOW_MINUTES} minutes), so it is not "
+                    "investigated separately."
+                )
             continue
         accepted.append(alert.get("labels", {}).get("alertname"))
         # Answer Alertmanager straight away; the investigation runs in the background.

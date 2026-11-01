@@ -50,9 +50,9 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: Relay is answering with the backup model
-            description: The primary model failed and the fallback was used in the last 15 minutes. Users are still getting answers.
-
+            summary: Relay's main model is failing and the backup model is being tried
+            description: The primary model failed in the last 15 minutes and the backup model was tried. Check RelayAIErrors too. If the backup is also failing, users are getting no answers.
+        
         - alert: RelayMetricsMissing
           expr: absent(up{namespace="relay", service="backend"} == 1)
           for: 5m
@@ -115,6 +115,4 @@ spec:
             summary: A Relay pod cannot start
             description: Container {{ "{{ $labels.container }}" }} in pod {{ "{{ $labels.pod }}" }} has been stuck with {{ "{{ $labels.reason }}" }} for 5 minutes. A new version may not be rolling out.
         
-
-
 {{- end }}
