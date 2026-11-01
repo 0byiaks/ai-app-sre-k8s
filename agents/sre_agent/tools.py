@@ -7,6 +7,7 @@ in the break-it exercises:
     get_events            kubectl get events      (what Kubernetes noticed)
     get_logs              kubectl logs            (what the app itself said)
     get_rollout_history   kubectl rollout history (what changed recently)
+    get_deployment_config kubectl get deploy -o yaml (settings, and who changed them: helm or kubectl)
     query_prometheus      PromQL                  (the numbers)
     search_logs           LogQL                   (logs kept in Loki, even from deleted pods)
 
@@ -16,6 +17,7 @@ the agent sends them to Claude, and every character costs tokens.
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from datetime import UTC, datetime
@@ -137,6 +139,66 @@ def get_rollout_history(namespace: str, deployment: str) -> str:
         "'Scaled up replica set' messages for when it was rolled out.)"
     )
     return _cap(("\n".join(r for _, r in rows[:6]) + note) if rows else "No revisions found.")
+
+
+def get_deployment_config(namespace: str, deployment: str) -> str:
+    """A deployment's current settings: image, resources, env vars, and who last changed what.
+
+    Secret values are never shown: env vars from a Secret show only the Secret and key names.
+    """
+    _, apps = _k8s()
+    dep = apps.read_namespaced_deployment(deployment, namespace)
+    meta = dep.metadata
+    annotations = meta.annotations or {}
+    lines = [
+        f"deployment {meta.name}: revision {annotations.get('deployment.kubernetes.io/revision', '?')}, "
+        f"replicas {dep.spec.replicas}, "
+        f"helm release {annotations.get('meta.helm.sh/release-name', 'none (not created by Helm)')}"
+    ]
+    for c in dep.spec.template.spec.containers:
+        res = c.resources
+        lines.append(
+            f"container {c.name}: image {c.image}, requests {dict(res.requests or {})}, "
+            f"limits {dict(res.limits or {})}"
+        )
+        for e in c.env or []:
+            if e.value_from and e.value_from.secret_key_ref:
+                ref = e.value_from.secret_key_ref
+                lines.append(f"  env {e.name} = <from Secret {ref.name}, key {ref.key}>")
+            elif e.value_from and e.value_from.config_map_key_ref:
+                ref = e.value_from.config_map_key_ref
+                lines.append(f"  env {e.name} = <from ConfigMap {ref.name}, key {ref.key}>")
+            elif e.value_from:
+                lines.append(f"  env {e.name} = <from another source>")
+            else:
+                lines.append(f"  env {e.name} = {e.value!r}")
+
+    # Who changed the deployment: Kubernetes records each tool ("manager") that wrote fields.
+    lines.append("changed by (newest first):")
+    entries = sorted(
+        meta.managed_fields or [], key=lambda m: m.time or datetime.min.replace(tzinfo=UTC), reverse=True
+    )
+    for mf in entries:
+        owned = json.dumps(mf.fields_v1 or {})
+        touched = [
+            label
+            for key, label in (
+                ('"f:env"', "env"),
+                ('"f:image"', "image"),
+                ('"f:resources"', "resources"),
+                ('"f:replicas"', "replicas"),
+            )
+            if key in owned
+        ]
+        if mf.subresource == "status":
+            continue
+        fields = ", ".join(touched) or "other"
+        lines.append(f"  {mf.manager} ({mf.operation}) {_ago(mf.time)}: fields {fields}")
+    lines.append(
+        "(Note: a manager like 'kubectl-set' or 'kubectl-client-side-apply' means a change made directly "
+        "with kubectl, which drifts from Git. 'helm' means it came from the chart.)"
+    )
+    return _cap("\n".join(lines))
 
 
 def query_prometheus(promql: str) -> str:

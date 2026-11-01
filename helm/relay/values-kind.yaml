@@ -3,4 +3,4 @@ serviceMonitor:
 alerts:
   enabled: true
 rag:
-  enabled: true
+  enabled: false

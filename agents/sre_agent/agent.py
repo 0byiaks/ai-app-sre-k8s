@@ -105,6 +105,17 @@ TOOL_SPECS = [
         },
     },
     {
+        "name": "get_deployment_config",
+        "description": "A deployment's current settings: image, memory/CPU, environment variables "
+        "(secret values are hidden), and which tool last changed which fields (helm vs kubectl). "
+        "Use it to find WHAT setting changed and WHERE the change came from.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"namespace": {"type": "string"}, "deployment": {"type": "string"}},
+            "required": ["namespace", "deployment"],
+        },
+    },
+    {
         "name": "query_prometheus",
         "description": "Run an instant PromQL query. Useful metrics: relay_llm_errors_total{model,reason}, "
         "relay_http_requests_total{route,status}, relay_llm_cost_usd_total, "
@@ -138,6 +149,7 @@ TOOL_FUNCTIONS = {
     "get_events": tools.get_events,
     "get_logs": tools.get_logs,
     "get_rollout_history": tools.get_rollout_history,
+    "get_deployment_config": tools.get_deployment_config,
     "query_prometheus": tools.query_prometheus,
     "search_logs": tools.search_logs,
 }

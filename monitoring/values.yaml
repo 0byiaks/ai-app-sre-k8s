@@ -1,3 +1,11 @@
+grafana:
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.monitoring.svc:3100
+      access: proxy
+
 alertmanager:
   alertmanagerSpec:
     # Mount the slack-webhook Secret into Alertmanager as a file.
@@ -15,6 +23,10 @@ alertmanager:
         - receiver: slack              # but Relay alerts go to Slack
           matchers:
             - 'alertname =~ "Relay.*"'
+          continue: true               #    ...and keep going to the next rule
+        - receiver: sre-agent          # 2. ...and also to the AI agent
+          matchers:
+            - 'alertname =~ "Relay.*"'
 
     receivers:
       - name: "null"
@@ -24,3 +36,7 @@ alertmanager:
             send_resolved: true
             title: '{{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }})'
             text: '{{ range .Alerts }}*{{ .Annotations.summary }}*{{ "\n" }}{{ .Annotations.description }}{{ "\n" }}{{ end }}'
+      - name: sre-agent
+        webhook_configs:
+          - url: http://sre-agent.aiops.svc:8000/alerts
+            send_resolved: false

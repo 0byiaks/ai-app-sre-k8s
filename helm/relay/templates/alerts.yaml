@@ -27,7 +27,7 @@ spec:
             description: No backend pod has been ready for 2 minutes, so nobody can chat. Check kubectl get pods and describe.
 
         - alert: RelaySpendHigh
-          expr: sum(increase(relay_llm_cost_usd_total[1h])) > 2
+          expr: sum(increase(relay_llm_cost_usd_total[1h])) > 0.05
           for: 5m
           labels:
             severity: critical
@@ -79,4 +79,42 @@ spec:
           annotations:
             summary: Relay answers are slow to start
             description: 95% of answers took longer than 5 seconds to show the first word over the last 10 minutes.
+       
+        - alert: RelayCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="relay"}[10m]) > 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: A Relay pod keeps restarting
+            description: Pod {{ "{{ $labels.pod }}" }} restarted more than twice in 10 minutes. Check kubectl describe for the last state and exit code.
+
+        - alert: RelayHighMemory
+          expr: |
+            max by (pod, container) (container_memory_working_set_bytes{namespace="relay", container!=""})
+              /
+            max by (pod, container) (kube_pod_container_resource_limits{namespace="relay", resource="memory"})
+              > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Relay container is close to its memory limit
+            description: Container {{ "{{ $labels.container }}" }} in pod {{ "{{ $labels.pod }}" }} is using over 90% of its memory limit and may be OOMKilled.
+        
+        - alert: RelayPodStuck
+          expr: |
+            max by (pod, container, reason) (
+              kube_pod_container_status_waiting_reason{namespace="relay",
+                reason=~"ImagePullBackOff|ErrImagePull|CreateContainerConfigError|InvalidImageName"}
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Relay pod cannot start
+            description: Container {{ "{{ $labels.container }}" }} in pod {{ "{{ $labels.pod }}" }} has been stuck with {{ "{{ $labels.reason }}" }} for 5 minutes. A new version may not be rolling out.
+        
+
+
 {{- end }}
