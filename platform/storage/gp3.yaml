@@ -1,0 +1,13 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true" # PVCs that don't name a class get this one
+provisioner: ebs.csi.aws.com           # the EBS CSI driver add-on creates the disks
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete                  # delete the disk when the PVC is deleted
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"

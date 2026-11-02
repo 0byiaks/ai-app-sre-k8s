@@ -1,0 +1,12 @@
+# EKS-only changes for kube-prometheus-stack. Used on top of monitoring/values.yaml.
+
+# On EKS, AWS runs the control plane (scheduler, controller manager, etcd) for us,
+# so Prometheus can't scrape them. Turn these off, or they show as "down" with
+# alerts firing about parts we don't even manage.
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+

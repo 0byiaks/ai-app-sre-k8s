@@ -1,0 +1,15 @@
+# EKS settings. Used on top of values.yaml, like values-kind.yaml is for kind.
+environment: eks
+
+backend:
+  image:
+    repository: 716769866080.dkr.ecr.eu-west-2.amazonaws.com/relay-backend
+    # tag: not set here. Each deploy passes the Git commit with --set (CI will too).
+frontend:
+  image:
+    repository: 716769866080.dkr.ecr.eu-west-2.amazonaws.com/relay-frontend
+
+serviceMonitor:
+  enabled: true   # Prometheus scrapes the backend's /metrics
+alerts:
+  enabled: true   # the Relay alert rules
