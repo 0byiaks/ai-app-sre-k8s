@@ -182,7 +182,7 @@ def run_tool(name: str, args: dict) -> str:
         return f"Unknown tool: {name}"
     try:
         return func(**args)
-    except Exception as exc:  # a tool failure is evidence too; never crash the investigation
+    except Exception as exc:  # noqa: BLE001 - a tool failure is evidence too; never crash the investigation
         return f"Tool {name} failed: {type(exc).__name__}: {exc}"
 
 

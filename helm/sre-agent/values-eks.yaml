@@ -1,0 +1,4 @@
+# EKS settings. Used on top of values.yaml, like helm/relay/values-eks.yaml.
+image:
+  repository: 716769866080.dkr.ecr.eu-west-2.amazonaws.com/sre-agent
+  # tag: not set here. Each deploy passes the Git commit with --set.

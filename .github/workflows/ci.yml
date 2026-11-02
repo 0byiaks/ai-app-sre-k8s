@@ -94,8 +94,8 @@ jobs:
         if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_REGION }}
-          aws-region: ${{ vars.AWS_REGION_ARN }}
+          role-to-assume: ${{ vars.AWS_REGION_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
         if: github.event_name == 'push'
@@ -105,7 +105,7 @@ jobs:
       - name: Build (and push on main)
         uses: docker/build-push-action@v6
         with:
-          context: app/${{ matrix.context }}
+          context: ${{ matrix.context }}
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.ecr.outputs.registry || 'local' }}/${{ matrix.image }}:${{ github.sha }}
           build-args: VERSION=${{ github.sha }}
@@ -129,8 +129,8 @@ jobs:
       - name: Log in to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: ${{ vars.AWS_REGION_ARN }}
-          role-to-assume: ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_REGION_ARN }}
 
       - name: Is the cluster running?
         id: cluster
