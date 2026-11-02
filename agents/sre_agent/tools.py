@@ -127,9 +127,11 @@ def get_rollout_history(namespace: str, deployment: str) -> str:
         rows.append(
             (
                 revision,
-                f"revision {revision}: created {_ago(rs.metadata.creation_timestamp)}, "
-                f"pods ready {rs.status.ready_replicas or 0}/{rs.spec.replicas}, "
-                f"image {images}, {limits}",
+                (
+                    f"revision {revision}: created {_ago(rs.metadata.creation_timestamp)}, "
+                    f"pods ready {rs.status.ready_replicas or 0}/{rs.spec.replicas}, "
+                    f"image {images}, {limits}"
+                ),
             )
         )
     rows.sort(reverse=True)
@@ -151,9 +153,11 @@ def get_deployment_config(namespace: str, deployment: str) -> str:
     meta = dep.metadata
     annotations = meta.annotations or {}
     lines = [
-        f"deployment {meta.name}: revision {annotations.get('deployment.kubernetes.io/revision', '?')}, "
-        f"replicas {dep.spec.replicas}, "
-        f"helm release {annotations.get('meta.helm.sh/release-name', 'none (not created by Helm)')}"
+        (
+            f"deployment {meta.name}: revision {annotations.get('deployment.kubernetes.io/revision', '?')}, "
+            f"replicas {dep.spec.replicas}, "
+            f"helm release {annotations.get('meta.helm.sh/release-name', 'none (not created by Helm)')}"
+        )
     ]
     for c in dep.spec.template.spec.containers:
         res = c.resources
