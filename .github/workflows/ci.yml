@@ -102,7 +102,21 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Already in ECR?
+        if: github.event_name == 'push'
+        id: exists
+        run: |
+          FOUND=$(aws ecr batch-get-image --repository-name ${{ matrix.image }} \
+            --image-ids imageTag=${{ github.sha }} --query 'length(images)' --output text)
+          if [ "$FOUND" = "1" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::${{ matrix.image }}:${{ github.sha }} is already in ECR, not building it again."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build (and push on main)
+        if: steps.exists.outputs.skip != 'true'
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
