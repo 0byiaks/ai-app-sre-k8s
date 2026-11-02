@@ -74,6 +74,8 @@ data "aws_iam_role" "github_actions" {
 resource "aws_eks_access_entry" "github_actions" {
   cluster_name  = module.eks.cluster_name
   principal_arn = data.aws_iam_role.github_actions.arn
+
+  kubernetes_groups = ["ci-deployers"]
 }
 
 # "...with admin rights, but only in the namespaces CI deploys to."

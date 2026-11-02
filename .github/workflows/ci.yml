@@ -182,9 +182,9 @@ jobs:
       - name: Smoke tests on EKS
         if: steps.cluster.outputs.up == 'true'
         run: |
-          kubectl port-forward -n relay svc/frontend 8080:80 &
-          sleep 5
-          curl -fsS localhost:8080/healthz
+          kkubectl port-forward -n relay svc/frontend 8080:80 &
+          # The tunnel takes a few seconds to open on EKS: retry instead of failing on the first try.
+          curl -fsS --retry 15 --retry-delay 2 --retry-connrefused localhost:8080/healthz
           curl -fsS localhost:8080/api/info
           echo "Relay is up on EKS with image $TAG"
 

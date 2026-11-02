@@ -1,0 +1,34 @@
+# Extra permissions for CI (the ci-deployers group) in the relay namespace.
+# The AWS admin policy doesn't cover these, so Kubernetes RBAC adds them.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ci-monitoring-resources
+  namespace: relay
+rules:
+  # 1. Relay's Prometheus objects: alerts (PrometheusRule) and scrape config (ServiceMonitor)
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["prometheusrules", "servicemonitors"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # 2. The same read-only access the AI SRE agent gets. CI creates the agent's Role here,
+  #    and Kubernetes only lets you grant permissions you hold yourself.
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ci-monitoring-resources
+  namespace: relay
+subjects:
+  - kind: Group
+    name: ci-deployers          # the group from the access entry
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: ci-monitoring-resources
+  apiGroup: rbac.authorization.k8s.io
