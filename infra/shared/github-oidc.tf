@@ -25,7 +25,11 @@ resource "aws_iam_role" "github_actions" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${local.github_repo}:ref:refs/heads/main"
+          # The repo uses GitHub's immutable subject (owner@id/repo@id); the plain form is kept as a fallback.
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:0byiaks@110993470/ai-app-sre-k8s@1435555002:ref:refs/heads/main",
+            "repo:${local.github_repo}:ref:refs/heads/main",
+          ]
         }
       }
     }]
