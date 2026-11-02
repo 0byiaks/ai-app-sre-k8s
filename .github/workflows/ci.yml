@@ -94,7 +94,7 @@ jobs:
         if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_REGION_ARN }}
+          role-to-assume: ${{ secrets.AWS_REGION_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
@@ -129,8 +129,8 @@ jobs:
       - name: Log in to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          role-to-assume: ${{ secrets.AWS_REGION_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ vars.AWS_REGION_ARN }}
 
       - name: Is the cluster running?
         id: cluster
