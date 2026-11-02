@@ -1,7 +1,6 @@
 image:
-  repository: sre-agent
-  tag: dev
-  pullPolicy: IfNotPresent
+  repository: 716769866080.dkr.ecr.eu-west-2.amazonaws.com/sre-agent
+ 
 
 targetNamespace: relay            # the only namespace the agent is allowed to look at
 model: claude-sonnet-5-5

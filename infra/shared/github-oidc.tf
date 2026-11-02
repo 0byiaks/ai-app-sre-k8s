@@ -10,6 +10,8 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 
+
+
 # The role CI assumes. Only jobs from your repo's main branch can use it.
 resource "aws_iam_role" "github_actions" {
   name = "relay-github-actions"
@@ -70,3 +72,4 @@ resource "aws_iam_role_policy" "github_actions" {
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
+

@@ -45,6 +45,7 @@ module "eks" {
   }
 }
 
+
 # IAM role for the EBS disk driver, given to its pod through EKS Pod Identity.
 resource "aws_iam_role" "ebs_csi" {
   name = "${var.name}-ebs-csi"
@@ -62,4 +63,28 @@ resource "aws_iam_role" "ebs_csi" {
 resource "aws_iam_role_policy_attachment" "ebs_csi" {
   role       = aws_iam_role.ebs_csi.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+
+data "aws_iam_role" "github_actions" {
+  name = "relay-github-actions"
+}
+
+# "This IAM role may log in to the cluster."
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = data.aws_iam_role.github_actions.arn
+}
+
+# "...with admin rights, but only in the namespaces CI deploys to."
+resource "aws_eks_access_policy_association" "github_actions" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = data.aws_iam_role.github_actions.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+
+  access_scope {
+    type       = "namespace"
+    namespaces = ["relay", "aiops"]
+  }
+  depends_on = [aws_eks_access_entry.github_actions]
 }

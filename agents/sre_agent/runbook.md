@@ -21,6 +21,8 @@
 - The deploy command is: `helm upgrade relay helm/relay -n relay -f helm/relay/values-eks.yaml
   --set backend.image.tag=<git sha> --set frontend.image.tag=<git sha>` (run from the repo root).
   Normally CI deploys; image tags are Git commits and an image tag that is not in ECR causes ImagePullBackOff.
+- Helm uses server-side apply. If kubectl changed a field the chart also sets, `helm upgrade` fails with
+  "conflict ... kubectl-set". Add `--force-conflicts` so the chart (Git) takes ownership back.
 
 ## What it depends on
 
