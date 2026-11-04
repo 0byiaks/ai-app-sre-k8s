@@ -7,7 +7,28 @@ module "eks" {
 
   # Lets you run kubectl from your laptop. The creator (you) gets admin access.
   endpoint_public_access                   = true
-  enable_cluster_creator_admin_permissions = true
+  enable_cluster_creator_admin_permissions = false
+
+  access_entries = {
+    me = {
+      principal_arn = "arn:aws:iam::716769866080:root"
+      policy_association = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+          access_scope ={ type       = "clusetr" }
+      }
+    }
+  }
+  infra_ci = {
+      principal_arn = "arn:aws:iam::716769866080:role/relay-github-infra"
+      policy_associations = {
+        admin = {
+          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = { type = "cluster" }
+        }
+      }
+    }
+  }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets # nodes live in the private subnets

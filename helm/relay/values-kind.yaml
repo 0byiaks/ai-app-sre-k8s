@@ -4,3 +4,5 @@ alerts:
   enabled: true
 rag:
   enabled: false
+ingress:
+  enabled: false

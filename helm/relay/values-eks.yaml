@@ -13,3 +13,5 @@ serviceMonitor:
   enabled: true   # Prometheus scrapes the backend's /metrics
 alerts:
   enabled: true   # the Relay alert rules
+ingress:
+  enabled: true   # the public ALB ingress for Relay

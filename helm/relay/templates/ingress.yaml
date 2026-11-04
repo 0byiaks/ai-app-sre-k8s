@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: relay
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing        # public, not internal
+    alb.ingress.kubernetes.io/target-type: ip                # send traffic straight to pod IPs
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz     # only healthy pods get traffic
+    alb.ingress.kubernetes.io/inbound-cidrs: <your IP>/32    # optional: only you can open it
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

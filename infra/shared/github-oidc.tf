@@ -77,3 +77,33 @@ output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
 
+
+
+resource "aws_iam_role" "github_infra" {
+  name = "relay-github-infra"
+    assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [{
+        Effect    = "Allow"
+        Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+        Action    = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+            StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:sub" = "repo:${local.github_repo}:ref:refs/heads/main"
+            
+            }
+        }
+        }]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "github_infra" {
+    role = aws_iam_role.github_infra.name
+    policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+  
+}
+
+output "github_infra_role_arn" {
+  value = aws_iam_role.github_infra.arn
+}
