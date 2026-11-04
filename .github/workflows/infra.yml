@@ -1,0 +1,42 @@
+name: Infra
+
+on:
+  workflow_dispatch: # only runs when you press "Run workflow"
+    inputs:
+      action:
+        description: "Bring the EKS environment up or down"
+        type: choice
+        options: [up, down]
+        required: true
+
+concurrency: infra # never two infra runs at once
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false # so "terraform output -raw" works inside the script
+
+      - uses: azure/setup-helm@v4
+
+      - name: Log in to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: Up
+        if: inputs.action == 'up'
+        run: ./scripts/up.sh
+
+      - name: Down
+        if: inputs.action == 'down'
+        run: echo yes | ./scripts/down.sh # answers the "Type yes" question
