@@ -12,14 +12,14 @@ module "eks" {
   access_entries = {
     me = {
       principal_arn = "arn:aws:iam::716769866080:root"
-      policy_association = {
+      policy_associations = {
         admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
-          access_scope ={ type       = "clusetr" }
+          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = { type = "cluster" }
+        }
       }
     }
-  }
-  infra_ci = {
+    infra_ci = {
       principal_arn = "arn:aws:iam::716769866080:role/relay-github-infra"
       policy_associations = {
         admin = {
