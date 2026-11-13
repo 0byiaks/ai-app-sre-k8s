@@ -57,6 +57,8 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set vpcId="$(terraform -chdir=infra/eks output -raw vpc_id)" \
   --set serviceAccount.name=aws-load-balancer-controller \
   --wait
+  kubectl rollout restart deploy/aws-load-balancer-controller -n kube-system
+  kubectl rollout status deploy/aws-load-balancer-controller -n kube-system --timeout=180s
 
 step "7/9 Monitoring: Prometheus, Grafana, Alertmanager, Loki, Alloy"
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring \
