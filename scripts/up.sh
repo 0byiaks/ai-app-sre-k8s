@@ -36,6 +36,7 @@ step "5/9 External Secrets (AWS Secrets Manager -> Kubernetes Secrets)"
 helm repo add external-secrets https://charts.external-secrets.io --force-update > /dev/null
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update > /dev/null
 helm repo add grafana https://grafana.github.io/helm-charts --force-update > /dev/null
+helm repo add grafana-community https://grafana-community.github.io/helm-charts --force-update > /dev/null
 helm repo update > /dev/null
 helm upgrade --install external-secrets external-secrets/external-secrets \
   -n external-secrets --create-namespace --wait
