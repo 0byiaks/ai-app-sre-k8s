@@ -30,7 +30,7 @@ jobs:
       - name: Log in to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_INFRA_ARN }}
+          role-to-assume: role-to-assume: arn:aws:iam::716769866080:role/relay-github-infra
           aws-region: eu-west-2
 
       - name: Up
