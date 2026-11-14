@@ -16,6 +16,9 @@ read -r -p "Destroy the EKS cluster '$CLUSTER'? Type yes: " answer
 if aws eks describe-cluster --region "$REGION" --name "$CLUSTER" > /dev/null 2>&1; then
   aws eks update-kubeconfig --region "$REGION" --name "$CLUSTER" > /dev/null
 
+  step "0/2 Deleting the public load balancer"
+  kubectl delete ingress --all -n relay --wait=true --timeout=180s 2> /dev/null || true
+  
   step "1/2 Deleting disks first (so no EBS volumes are left behind)"
   helm uninstall loki -n monitoring --wait 2> /dev/null || true
   kubectl delete pvc --all -n monitoring --wait=false
@@ -29,6 +32,7 @@ else
 fi
 
 step "2/2 Destroying the cluster (Terraform, ~10-15 min)"
+terraform -chdir=infra/eks init -input=false > /dev/null
 terraform -chdir=infra/eks destroy -auto-approve -input=false
 
 echo
